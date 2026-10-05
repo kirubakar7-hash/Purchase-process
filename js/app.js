@@ -4,7 +4,8 @@
    Pages register themselves (js/pages/*.js):
 
    PCT.pages.register({
-     route: 'purchases',              // matches #/purchases, #/purchases/PUR-2026-00125 (params = ['PUR-…'])
+     route: 'purchases',              // matches #/purchases, #/purchases/x (params = ['x']) — longest prefix wins
+     match: path => bool,             // optional custom matcher (wins over prefixes); params = path segments after the first
      title: 'Purchases',
      perms: ['procure', 'admin'],     // optional — any one grants access; omit = everyone signed in
      render(ctx) { return '<html>' }, // pure: build HTML from ctx.state
@@ -32,8 +33,9 @@ PCT.pages = (function () {
       list.sort((a, b) => b.route.length - a.route.length); // longest route first
       if (PCT.app && PCT.app.started) PCT.app.render();
     },
+    /** Custom matchers win (page.match(path) → bool), then longest route prefix. */
     match(path) {
-      return list.find(p => path === p.route || path.indexOf(p.route + '/') === 0);
+      return list.find(p => typeof p.match === 'function' && p.match(path)) || list.find(p => !p.match && (path === p.route || path.indexOf(p.route + '/') === 0));
     }
   };
 })();
@@ -114,7 +116,7 @@ PCT.app = (function () {
   /* ---------------- context ---------------- */
   function makeCtx(state, user, page, path, query) {
     const route = page ? page.route : path;
-    const params = page ? path.slice(page.route.length).split('/').filter(Boolean).map(decodeURIComponent) : [];
+    const params = !page ? [] : (typeof page.match === 'function' ? path.split('/').slice(1) : path.slice(page.route.length).split('/')).filter(Boolean).map(decodeURIComponent);
     if (!locals[route]) locals[route] = {};
     const ctx = {
       state, user, role: user ? PCT.engine.role(state, user.roleId) : null, route, params, query, path,

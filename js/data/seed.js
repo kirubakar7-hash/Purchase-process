@@ -254,5 +254,6 @@ PCT.seed = (function () {
     return state;
   }
 
-  return { build, scenarios, emptyState };
+  /** defaultOps(state, p, a, scenario?) → [[op, payload], …] a typical user would perform for the current activity (used by the presenter's auto-complete). '__rfq_receive_all' is a pseudo-op: mark every RFQ received. */
+  return { build, scenarios, emptyState, defaultOps: (state, p, a, sc) => defaultOps(state, p, a, sc || {}) };
 })();

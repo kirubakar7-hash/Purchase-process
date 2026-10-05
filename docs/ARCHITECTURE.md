@@ -197,6 +197,8 @@ PCT.pages.register({
 });
 ```
 
+Custom routes: add `match: path => /^purchases\/PUR-/.test(path)` to claim a path pattern (params = segments after the first).
+
 Events: `data-act="name"` (click), `data-act-change`, `data-act-input`, `<form data-submit="name">`, `data-href` on rows.
 Global actions available everywhere: `tab` (data-key, data-tab), `sort`, `toggle` (data-key), `set` (data-key, data-value), `nav` (data-to).
 Action forms (`js/pages/action-forms.js`) expose `PCT.actionForms.render(ctx, p, a)` and handlers named `af-*`, which the app
@@ -204,6 +206,16 @@ dispatches on every page — so My Actions, Approvals or the Purchase page can a
 
 Permissions (role master): `purchase.create, purchase.view_own, purchase.view_dept, purchase.view_all, approve, procure,
 vendor.manage, receive, finance, reports, analytics, admin`. Visibility of purchases: `S.visiblePurchases(state, user)`.
+
+### Shared module contracts
+
+* `PCT.actionForms` (`js/pages/action-forms.js`): `render(ctx, p, a) → html` for the current activity; handlers `af-*`.
+* `PCT.excel` (`js/core/excel.js`): `exportWorkbook(filename, [{name, columns:[{key,label,value?(row)}], rows}])` downloads a real .xlsx;
+  `readFile(File) → Promise<{sheets:[{name, rows:[{header: value}]}]}>` reads .xlsx or .csv; `toCSV`/`downloadCSV` helpers.
+  Callers must fall back to CSV (`PCT.util.toCSV` + `PCT.util.download`) if `PCT.excel` is missing.
+* `PCT.assistant` (`js/core/assistant.js`): `answer(state, question, user) → {text, links:[{label, href}]}` — used by global search.
+* `PCT.seed.defaultOps(state, p, a)` → the typical `[op, payload]` list for the current activity (presenter auto-complete).
+* Purchases list query contract (links from dashboards / tower): `#/purchases?status=open|draft|overdue|blocked|waiting-vendor|pending-approval|completed|rejected&group=PAYMENT&stage=S04&dept=DPT-IT&owner=U09&vendor=V001&category=CAT-ITH&priority=P1&q=text&mine=1`.
 
 ## 9. Conventions
 
