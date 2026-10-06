@@ -10,6 +10,8 @@ head = re.search(r'<head>(.*?)</head>', src, re.S).group(1)
 body = re.search(r'<body>(.*?)</body>', src, re.S).group(1)
 head = re.sub(r'\s*<meta charset[^>]*>|\s*<meta name="viewport"[^>]*>', '', head)
 body = body.replace('<script>PCT.app.start();</script>', '<script src="hosting/hosted-shim.js"></script>\n  <script>PCT.app.start();</script>')
+# drop modules that do not exist yet (keeps the hosted console clean during staged publishing)
+body = re.sub(r'\s*<script src="((?:js|hosting)/[^"]+)"></script>', lambda m: m.group(0) if os.path.exists(os.path.join(root, m.group(1))) else '', body)
 out = head.strip() + '\n' + body.strip() + '\n'
 dest = sys.argv[1] if len(sys.argv) > 1 else os.path.join(root, 'hosting', 'artifact.html')
 open(dest, 'w', encoding='utf-8').write(out)
