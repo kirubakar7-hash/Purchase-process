@@ -138,11 +138,11 @@ PCT.ui = (function () {
       const sortable = c.sort !== false && opts.key;
       const sorted = sortState && sortState.col === c.key;
       const arrow = sorted ? (sortState.dir === 'desc' ? '↓' : '↑') : '↕';
-      return `<th class="${sortable ? 'sortable' : ''} ${sorted ? 'sorted' : ''} ${c.align === 'right' ? 'num' : ''}" ${c.width ? `style="width:${c.width}"` : ''} ${sortable ? `data-act="sort" data-key="${esc(opts.key)}" data-col="${esc(c.key)}"` : ''}>${esc(c.label)}${sortable ? `<span class="sort">${arrow}</span>` : ''}</th>`;
+      return `<th class="${sortable ? 'sortable' : ''} ${sorted ? 'sorted' : ''} ${c.align === 'right' ? 'num' : ''} ${c.cls || ''} ${c.hideOnMobile ? 'hide-m' : ''}" ${c.width ? `style="width:${c.width}"` : ''} ${sortable ? `data-act="sort" data-key="${esc(opts.key)}" data-col="${esc(c.key)}"` : ''}>${esc(c.label)}${sortable ? `<span class="sort">${arrow}</span>` : ''}</th>`;
     }).join('');
     const body = data.length ? data.map(r => {
       const href = opts.rowHref ? opts.rowHref(r) : null;
-      return `<tr class="${href ? 'clickable' : ''} ${opts.rowClass ? opts.rowClass(r) || '' : ''}" ${href ? `data-href="${esc(href)}"` : ''}>${columns.map(c => `<td class="${c.align === 'right' ? 'num' : ''} ${c.cls || ''}" ${c.align === 'center' ? 'style="text-align:center"' : ''}>${c.render ? c.render(r) : esc(r[c.key] == null ? '' : r[c.key])}</td>`).join('')}</tr>`;
+      return `<tr class="${href ? 'clickable' : ''} ${opts.rowClass ? opts.rowClass(r) || '' : ''}" ${href ? `data-href="${esc(href)}"` : ''}>${columns.map(c => `<td class="${c.align === 'right' ? 'num' : ''} ${c.cls || ''} ${c.hideOnMobile ? 'hide-m' : ''}" ${c.align === 'center' ? 'style="text-align:center"' : ''}>${c.render ? c.render(r) : esc(r[c.key] == null ? '' : r[c.key])}</td>`).join('')}</tr>`;
     }).join('') : `<tr><td colspan="${columns.length}"><div class="table-empty">${esc(opts.empty || 'No records')}</div></td></tr>`;
     return `<div class="table-wrap"><table class="tbl ${opts.dense ? 'dense' : ''}"><thead><tr>${th}</tr></thead><tbody>${body}</tbody>${opts.foot ? `<tfoot>${opts.foot}</tfoot>` : ''}</table></div>${opts.limit && total > opts.limit ? `<div class="pager"><span>Showing ${opts.limit} of ${total}</span>${opts.moreHref ? `<a href="${opts.moreHref}">View all ${I('arrowRight', 12)}</a>` : ''}</div>` : ''}`;
   }
@@ -209,10 +209,11 @@ PCT.ui = (function () {
     opts = opts || {};
     const cur = E().currentActivity(p);
     const items = (p.stages || []).filter(s => opts.showSkipped || s.status !== 'Skipped');
-    return `<div class="stepper">${items.map((s, i) => {
+    return `<div class="stepper">${items.map(s => {
+      const n = (p.stages || []).indexOf(s) + 1;
       let cls = s.status === 'Completed' ? 'done' : s.status === 'Skipped' ? 'skipped' : s.status === 'Rejected' ? 'rejected' : 'todo';
       if (cur && cur.stageId === s.stageId) cls = (cur.status === 'Blocked' || p.status === 'On Hold') ? 'blocked' : E().isOverdue(state, cur) ? 'overdue' : 'current';
-      const mark = cls === 'done' ? '✓' : cls === 'rejected' ? '✕' : String(i + 1);
+      const mark = cls === 'done' ? '✓' : cls === 'rejected' ? '✕' : String(n);
       const sub = cls === 'done' && s.completedAt ? U.fmt.dateShort(s.completedAt) : cls === 'current' ? 'Now' : cls === 'overdue' ? 'Overdue' : cls === 'blocked' ? 'Blocked' : cls === 'skipped' ? 'Not required' : '';
       return `<div class="step ${cls}" title="${esc(s.name)}"><div class="sdot">${mark}</div><div class="slabel">${esc(s.name)}</div><div class="ssub">${esc(sub)}</div></div>`;
     }).join('')}</div>`;
@@ -228,7 +229,7 @@ PCT.ui = (function () {
     if (b.closed) {
       const tone = p.status === 'Closed' ? 'green' : 'grey';
       return `<section class="ball tone-${tone} ${opts.compact ? 'compact' : ''}"><div class="ball-head"><span class="ball-orb"></span><span class="ball-title">${p.status === 'Closed' ? 'Purchase closed — nobody holds the ball' : `Purchase ${esc(p.status.toLowerCase())}`}</span></div>
-        <div class="muted mt-8">${p.status === 'Closed' ? `Closed ${U.fmt.date(p.closedAt)} · every required activity, approval, document and payment is complete.` : esc(p.status)}</div></section>`;
+        <div class="muted mt-8">${p.status === 'Closed' ? `Closed ${U.fmt.date(p.closedAt)} · every required activity, approval, document and payment is complete.` : esc(closedReason(state, p))}</div></section>`;
     }
     const tone = b.status === 'Overdue' || b.status === 'Blocked' ? 'red' : b.status === 'Waiting' ? 'yellow' : 'orange';
     const mine = opts.viewer && opts.viewer.id === b.ownerUserId;
@@ -246,13 +247,19 @@ PCT.ui = (function () {
         <div class="wide"><span>Current activity</span><b>${esc(b.activityName)}</b></div>
         <div><span>Due</span><b>${due(b.dueAt)}</b></div>
         <div><span>Ageing</span><b>${U.fmt.days(b.ageingDays)}</b></div>
-        ${opts.compact ? '' : `<div class="wide" style="grid-column: span ${opts.compact ? 3 : 6}"><span>Next action</span><b>${esc(b.nextAction)}${esc(waiting)}</b></div>`}
+        ${opts.compact ? '' : `<div class="wide" style="grid-column: 1 / -1"><span>Next action</span><b>${esc(b.nextAction)}${esc(waiting)}</b></div>`}
       </div>
       ${b.blocker ? `<div class="mt-12">${alert('danger', `<b>Blocked:</b> ${esc(b.blocker)}`)}</div>` : ''}
       ${opts.actions ? `<div class="ball-foot"><div class="muted small">${esc(b.stageName)} · stage ${(p.stages.findIndex(s => s.stageId === b.stageId) + 1)} of ${p.stages.length}</div><div class="row wrap">${opts.actions}</div></div>` : ''}
     </section>`;
   }
   const actStatusBadge = (state, st) => status(state, 'activity', st);
+  function closedReason(state, p) {
+    const a = (p.activities || []).find(x => x.status === 'Rejected');
+    const who = a && a.completedBy ? E().userName(state, a.completedBy) : '';
+    const when = p.closedAt ? U.fmt.date(p.closedAt) : '';
+    return `${p.status}${who ? ' by ' + who : ''}${when ? ' on ' + when : ''}${a && a.remarks ? ' — ' + a.remarks : ''}`;
+  }
 
   /* ---------------- modal / confirm / toast ---------------- */
   let modalHandlers = null;

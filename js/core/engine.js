@@ -423,7 +423,8 @@ PCT.engine = (function () {
   function startActivity(state, p, a) {
     const ctx = context(state, p);
     if (a.condition && !evalCond(a.condition, ctx)) {
-      a.status = 'Skipped'; a.completedAt = now(); a.remarks = 'Condition not met: ' + describeCond(a.condition);
+      a.status = 'Skipped'; a.completedAt = now(); a.skipCondition = a.condition;
+      a.remarks = 'Not required — condition not met (' + describeCond(a.condition) + ')';
       return false;
     }
     if (!a.reassigned) a.ownerUserId = resolveOwner(state, p, a.ownerRole);
@@ -1338,6 +1339,7 @@ PCT.engine = (function () {
     audit(state, { userId, action: 'Status Changed', entity: 'Invoice', entityId: inv.id, purchaseId: p.id, field: 'status', prev, next: st, note: inv.number });
   }
   function newPayment(state, p, o, userId) {
+    Object.keys(o).forEach(k => { if (o[k] === undefined) delete o[k]; });
     const pay = Object.assign({ id: nextId(state, 'PAY'), purchaseId: p.id, poNumber: p.po ? p.po.number : null, invoiceIds: [], advanceId: null, vendorId: p.po ? p.po.vendorId : null, date: now(), bank: 'HDFC Bank — Current A/c ••••0021', mode: 'NEFT', utr: '', proof: null, status: 'Paid', createdBy: userId, history: [] }, o);
     pay.proof = pay.proof || `Payment_Advice_${pay.id}.pdf`;
     pay.history.push({ status: pay.status, at: now(), by: userId });
@@ -1433,7 +1435,7 @@ PCT.engine = (function () {
     resume: x => {
       if (x.p.status !== 'On Hold') return fail('Purchase is not on hold.');
       x.p.status = 'Open'; const a = currentActivity(x.p); if (a) unblock(x.state, x.p, a, x.userId);
-      audit(x.state, { userId: x.userId, action: 'Status Changed', purchaseId: x.p.id, entityId: x.p.id, field: 'status', prev: 'On Hold', next: 'Open' });
+      audit(x.state, { userId: x.userId, action: 'Status Changed', purchaseId: x.p.id, entityId: x.p.id, field: 'status', prev: 'On Hold', next: 'Open', note: x.payload.reason || null });
       return { ok: true };
     },
     cancel: x => {
@@ -1489,6 +1491,8 @@ PCT.engine = (function () {
     if (G[op]) {
       if (['hold', 'resume', 'reassign'].includes(op) && !hasPerm(state, usr, ['admin', 'procure', 'finance']) && usr.id !== deptHeadFor(state, p.deptId)) return fail('You do not have permission for this action.');
       if (op === 'cancel' && usr.id !== p.requestorId && !hasPerm(state, usr, ['admin', 'procure'])) return fail('Only the requestor, Procurement or Admin can cancel.');
+      if (op === 'verify_doc' && !hasPerm(state, usr, ['finance', 'procure', 'admin'])) return fail('Only Finance, Procurement or Admin can verify documents.');
+      if (op === 'upload_doc' && ['Closed', 'Cancelled', 'Rejected'].includes(p.status)) return fail(`Purchase is ${p.status} — documents are locked.`);
       return G[op](x);
     }
     const wasDraft = op === 'submit' && p.status === 'Draft';

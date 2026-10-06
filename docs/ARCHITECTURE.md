@@ -166,9 +166,13 @@ E.tick(state)               // escalation engine (app runs it every minute)
 `row(state, p)` (flattened row: stage, owner, actStatus, dueAt, ageingDays, overdueDays, vendor, poNumber, advanceOutstanding,
 pendingPayment, paymentStatus, openExceptions …) · `rows(state, list)` · `visiblePurchases(state, user)` · `myActions(state, user)` ·
 `kpis(state, user, list?)` · `tower(state, list?)` (per stage group: open, completed, overdue, blocked, value, purchases) ·
-`bottlenecks(state)` · `slaStats(state)` · `cycleTimes(state)` · `vendorPerformance(state)` · `financial(state)` ·
-`advanceRows(state)` · `ageingSummary(state)` · `exceptionRows(state)` · `documentSummary(state, p)` · `timeline(state, p)` ·
+`tower(state, list?)` · `bottlenecks(state, list?)` · `slaStats(state, list?)` · `cycleTimes(state, list?)` · `vendorPerformance(state)` · `financial(state, list?)` ·
+`advanceRows(state)` · `ageingSummary(state)` · `exceptionRows(state, list?)` · `documentSummary(state, p)` · `timeline(state, p)` ·
 `notificationsFor(state, userId)` · `search(state, q, user)` · `statusTone(state, kind, name)` · `deptName/vendorName/catName/ccName`.
+
+**Visibility:** on user-facing pages always pass `S.visiblePurchases(state, user)` as `list` (and filter advances/payments/exceptions
+by those purchase ids) so restricted users never see company-wide figures. `documentSummary` marks system-generated documents of the
+stage in progress as `Pending (auto)` (not Missing). Table columns accept `cls` (applied to th and td) and `hideOnMobile: true`.
 
 ## 7. UI kit (`PCT.ui`, aliased `ctx.ui`)
 

@@ -84,6 +84,7 @@ PCT.sel = (function () {
     const rs = ps.map(p => row(state, p));
     const open = rs.filter(r => r.status === 'Open' || r.status === 'On Hold');
     const live = rs.filter(r => r.status !== 'Rejected' && r.status !== 'Cancelled');
+    const ids = new Set(ps.map(p => p.id));
     return {
       total: rs.length,
       open: open.length,
@@ -97,9 +98,9 @@ PCT.sel = (function () {
       rejected: rs.filter(r => r.status === 'Rejected' || r.status === 'Cancelled').length,
       totalValue: U.sum(live, r => r.value),
       openValue: U.sum(open, r => r.value),
-      advanceOutstanding: U.sum(state.advances, E().advanceOutstanding),
+      advanceOutstanding: U.sum(state.advances.filter(a => ids.has(a.purchaseId)), E().advanceOutstanding),
       pendingPayments: U.sum(open, r => r.pendingPayment),
-      openExceptions: state.exceptions.filter(e => e.status === 'Open' || e.status === 'In Progress').length
+      openExceptions: state.exceptions.filter(e => ids.has(e.purchaseId) && (e.status === 'Open' || e.status === 'In Progress')).length
     };
   }
 
@@ -200,9 +201,10 @@ PCT.sel = (function () {
   function financial(state, list) {
     const ps = (list || state.purchases).filter(p => p.status !== 'Rejected' && p.status !== 'Cancelled' && p.status !== 'Draft');
     const ids = new Set(ps.map(p => p.id));
+    const allIds = new Set((list || state.purchases).map(p => p.id)); // a paid advance on a cancelled purchase is still owed back
     const invs = [].concat(...ps.map(p => p.invoices || []));
-    const pays = state.payments.filter(x => ids.has(x.purchaseId));
-    const advs = state.advances.filter(a => ids.has(a.purchaseId) && a.status !== 'Rejected');
+    const pays = state.payments.filter(x => allIds.has(x.purchaseId));
+    const advs = state.advances.filter(a => allIds.has(a.purchaseId) && a.status !== 'Rejected');
     const t = now();
     const pendingInv = invs.filter(i => i.total - i.paidAmount - i.adjustedAmount > 0);
     const openBal = i => i.total - i.paidAmount - i.adjustedAmount;
@@ -255,8 +257,10 @@ PCT.sel = (function () {
   }
 
   /* ---------------- exceptions ---------------- */
-  function exceptionRows(state) {
-    return U.sortBy(state.exceptions.map(e => {
+  /** exceptionRows(state, list?) — pass S.visiblePurchases(state, user) on user-facing pages */
+  function exceptionRows(state, list) {
+    const ids = list ? new Set(list.map(p => p.id)) : null;
+    return U.sortBy(state.exceptions.filter(e => !ids || ids.has(e.purchaseId)).map(e => {
       const p = E().purchase(state, e.purchaseId) || {};
       return Object.assign({}, e, { purchaseTitle: p.title || '—', owner: E().userName(state, e.ownerUserId), ageDays: U.ageDays(e.date, e.closedAt || e.resolvedAt || now()), overdue: (e.status === 'Open' || e.status === 'In Progress') && e.dueDate && now() > e.dueDate });
     }), e => (e.status === 'Open' ? 0 : e.status === 'In Progress' ? 1 : 2) * 1e13 + ({ High: 0, Medium: 1, Low: 2 }[e.severity] || 1) * 1e12 - e.date);
@@ -265,10 +269,13 @@ PCT.sel = (function () {
   /* ---------------- documents summary ---------------- */
   function documentSummary(state, p) {
     const curSeq = (() => { const a = E().currentActivity(p); const s = a && E().stageDef(state, p, a.stageId); return p.status === 'Closed' ? 99 : s ? s.seq : 0; })();
+    const curStage = (E().currentActivity(p) || {}).stageId;
     const docs = (p.documents || []).map(d => {
       const seqs = d.stages.map(id => (E().stageDef(state, p, id) || {}).seq || 0);
       const due = Math.min(...seqs) <= curSeq;
-      return Object.assign({}, d, { due, displayStatus: d.status === 'Missing' ? (due ? 'Missing' : 'Upcoming') : d.status });
+      // system-generated documents of the stage in progress are created automatically when the step completes
+      const disp = d.status !== 'Missing' ? d.status : !due ? 'Upcoming' : (d.system && d.stages.includes(curStage)) ? 'Pending (auto)' : 'Missing';
+      return Object.assign({}, d, { due, displayStatus: disp });
     });
     const required = docs.filter(d => d.mandatory && d.status !== 'Not Required');
     return {
@@ -276,7 +283,7 @@ PCT.sel = (function () {
       required: required.length,
       received: required.filter(d => d.status === 'Received' || d.status === 'Verified').length,
       missing: required.filter(d => d.displayStatus === 'Missing').length,
-      upcoming: required.filter(d => d.displayStatus === 'Upcoming').length
+      upcoming: required.filter(d => d.displayStatus === 'Upcoming' || d.displayStatus === 'Pending (auto)').length
     };
   }
 

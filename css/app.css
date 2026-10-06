@@ -228,6 +228,7 @@ a.kpi:hover { border-color: #C9D6EA; box-shadow: var(--shadow); }
 .chip .x { opacity: .6; }
 .tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 5px; background: var(--grey-bg); color: var(--ink-2); }
 .dot-ind { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--faint); }
+.dot-ind.tone-navy { background: var(--navy-600); } .dot-ind.tone-grey { background: var(--faint); } .dot-ind.tone-purple { background: var(--purple); }
 .dot-ind.tone-green { background: var(--green); } .dot-ind.tone-red { background: var(--red); } .dot-ind.tone-orange { background: var(--orange); } .dot-ind.tone-yellow { background: #EAB308; } .dot-ind.tone-blue { background: var(--blue-500); } .dot-ind.tone-black { background: var(--black); }
 
 /* ---------- avatar ---------- */
@@ -242,6 +243,7 @@ a.kpi:hover { border-color: #C9D6EA; box-shadow: var(--shadow); }
 .table-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 table.tbl { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
 .tbl th { position: sticky; top: 0; background: #F8FAFC; text-align: left; font-size: 11.5px; font-weight: 650; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; padding: 9px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; z-index: 1; }
+.tbl th.num { text-align: right; }
 .tbl th.sortable { cursor: pointer; user-select: none; }
 .tbl th.sortable:hover { color: var(--ink); }
 .tbl th .sort { opacity: .35; margin-left: 2px; }
@@ -322,6 +324,7 @@ table.tbl { width: 100%; border-collapse: separate; border-spacing: 0; font-size
 .ball.tone-red { border-color: #F2C3C3; background: linear-gradient(180deg, #FFF4F4, #fff 70%); }
 .ball.tone-green { border-color: #C3E7D5; background: linear-gradient(180deg, #F1FBF6, #fff 70%); }
 .ball.tone-grey { border-color: var(--line); background: #fff; }
+.ball.tone-grey .ball-orb { background: var(--black); box-shadow: 0 0 0 4px rgba(31,41,55,.12); }
 .ball.tone-yellow { border-color: #F3E2A6; background: linear-gradient(180deg, #FFFBEA, #fff 70%); }
 .ball-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .ball-orb { width: 14px; height: 14px; border-radius: 50%; background: #F59E0B; box-shadow: 0 0 0 4px rgba(245,158,11,.18); flex: none; }
@@ -387,7 +390,11 @@ table.tbl { width: 100%; border-collapse: separate; border-spacing: 0; font-size
 .hbar.tone-red .track i { background: var(--red); } .hbar.tone-orange .track i { background: var(--orange); } .hbar.tone-green .track i { background: var(--green); } .hbar.tone-blue .track i { background: var(--blue-500); }
 
 /* ---------- control tower pipeline ---------- */
-.pipeline { display: grid; grid-template-columns: repeat(11, minmax(104px, 1fr)); gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+.pipeline { display: grid; grid-template-columns: minmax(0, 1.25fr) repeat(10, minmax(0, 1fr)); gap: 8px; padding-bottom: 4px; }
+.pipe .pname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 1400px) { .pipeline { grid-template-columns: repeat(6, minmax(0, 1fr)); } .pipe::after { display: none; } }
+@media (max-width: 900px) { .pipeline { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .pipeline { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .pipe { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 10px; cursor: pointer; position: relative; text-align: left; font: inherit; color: inherit; }
 .pipe:hover { border-color: #B9C8DE; box-shadow: var(--shadow); }
 .pipe.active { border-color: var(--blue-600); box-shadow: 0 0 0 2px var(--blue-100); }
@@ -513,6 +520,7 @@ table.tbl { width: 100%; border-collapse: separate; border-spacing: 0; font-size
   .topbar { padding: 0 12px; gap: 8px; }
 }
 @media (max-width: 560px) {
+  .hide-m { display: none !important; }
   .ball-grid, .ball.compact .ball-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .ball-grid > div.wide { grid-column: span 2; }
   .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
