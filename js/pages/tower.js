@@ -25,11 +25,12 @@
     .tw-summary { display:flex; flex-wrap:wrap; gap:6px 18px; font-size:12.5px; color:var(--muted); }
     .tw-summary b { color:var(--ink); font-size:14px; font-variant-numeric:tabular-nums; }
     .tw-summary .od b { color:var(--red); } .tw-summary .bl b { color:var(--orange); } .tw-summary .wt b { color:var(--yellow); }
-    .tw-root .pipeline { grid-template-columns: repeat(11, minmax(84px, 1fr)); }
+    .tw-root .pipeline { grid-template-columns: minmax(0, 1.25fr) repeat(10, minmax(0, 1fr)); }
     .tw-root .pipe { display:flex; flex-direction:column; min-width:0; }
     .tw-root .pipe .popen small { font-size:11px; font-weight:600; color:var(--muted); margin-left:3px; letter-spacing:0; }
     .tw-root .pipe.zero .popen { color:var(--faint); }
     .tw-root .pipe .pmeta .bl { color:var(--orange); font-weight:600; }
+    .tw-root .pipe .pmeta > span { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .tw-root .pipe .pmeta .val { color:var(--ink-2); font-weight:650; margin-top:2px; }
     .tw-root .pipe .pname { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .tw-id { white-space:nowrap; }
@@ -50,11 +51,11 @@
     .tw-present .tw-present-head h1 { font-size:26px; display:flex; align-items:center; gap:10px; }
     .tw-present .pipeline { gap:12px; }
     .tw-present .pipe { padding:16px 14px; }
-    .tw-present .pipe .pname { font-size:13px; }
+    .tw-present .pipe .pname { font-size:12.5px; letter-spacing:.04em; }
     .tw-present .pipe .popen { font-size:42px; margin:6px 0 4px; }
-    .tw-present .pipe .pmeta { font-size:13.5px; gap:2px; }
+    .tw-present .pipe .pmeta { font-size:12.5px; gap:3px; }
     .tw-present .tw-summary { font-size:14px; } .tw-present .tw-summary b { font-size:20px; }
-    @media (max-width: 1320px) {
+    @media (max-width: 1400px) {
       .tw-root:not(.tw-present) .pipeline { grid-template-columns: repeat(6, minmax(0, 1fr)); }
       .tw-root:not(.tw-present) .pipe::after { display:none; }
     }

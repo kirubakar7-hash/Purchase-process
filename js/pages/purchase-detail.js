@@ -579,7 +579,7 @@
         ['Justification', p.justification ? `<span class="pd-pre">${esc(p.justification)}</span>` : ''],
         ['Budget available', p.budgetAvailable ? ui.badge('Yes', 'green') : ui.badge('No — needs budget approval', 'red')],
         ['Priority', ui.priority(state, p.priority)],
-        ['Category', `${esc(cat.name || '—')}${(() => { const bits = []; const typ = c.categoryType === 'service' ? 'Service' : 'Material'; if (String(cat.name || '').toLowerCase() !== typ.toLowerCase()) bits.push(typ); if (cat.techEval) bits.push('technical evaluation'); return bits.length ? ` <span class="muted small">· ${esc(bits.join(' · '))}</span>` : ''; })()}`],
+        ['Category', `${esc(cat.name || '—')}${(() => { const bits = []; const typ = c.categoryType === 'service' ? 'Service' : 'Material'; if (!String(cat.name || '').toLowerCase().startsWith(typ.toLowerCase())) bits.push(typ); if (cat.techEval) bits.push('technical evaluation'); return bits.length ? ` <span class="muted small">· ${esc(bits.join(' · '))}</span>` : ''; })()}`],
         ['Department', esc(S.deptName(state, p.deptId))],
         ['Cost centre', esc(S.ccName(state, p.costCentreId))],
         ['Requestor', who(state, p.requestorId)],
@@ -734,9 +734,9 @@
     const uploadable = d => R.upload && (d.status === 'Missing' || d.status === 'Received');
     const table = ui.table([
       { key: 'name', label: 'Document', render: d => `<b>${esc(d.name)}</b><span class="sub">${esc(d.docId)}${d.system ? ' · system generated' : ''}${d.system && d.status === 'Missing' && d.displayStatus === 'Missing' ? ' — created automatically when the step completes' : ''}</span>` },
+      { key: 'displayStatus', label: 'Status', render: d => ui.badge(d.displayStatus, docTone(d.displayStatus)) },
       { key: 'stage', label: 'Stage', sort: d => (E.stageDef(state, p, d.stages[0]) || {}).seq || 0, render: d => esc(d.stages.map(stageName).join(', ')) },
       { key: 'mandatory', label: 'Mandatory', render: d => d.mandatory ? 'Yes' : muted('No') },
-      { key: 'displayStatus', label: 'Status', render: d => ui.badge(d.displayStatus, docTone(d.displayStatus)) },
       { key: 'fileName', label: 'File', render: d => d.fileName ? `<span class="mono small">${esc(d.fileName)}</span>` : dash },
       { key: 'uploadedAt', label: 'Uploaded', render: d => d.uploadedAt ? `${esc(fmt.date(d.uploadedAt))}<span class="sub">${esc(nm(state, d.uploadedBy))}</span>${d.verifiedAt ? `<span class="sub" style="color:var(--green)">Verified ${esc(fmt.dateShort(d.verifiedAt))} · ${esc(nm(state, d.verifiedBy))}</span>` : ''}` : dash },
       { key: 'act', label: '', sort: false, render: d => `<div class="row end nowrap" style="gap:4px">${R.verify && d.status === 'Received' ? `<button class="btn btn-xs" data-act="pd-verify" data-doc="${esc(d.docId)}" title="Mark ${esc(d.name)} as verified">${I('check', 12)} Verify</button>` : ''}${uploadable(d) ? (d.status === 'Missing' ? `<button class="btn btn-xs ${d.displayStatus === 'Missing' ? 'btn-primary' : ''}" data-act="pd-upload" data-doc="${esc(d.docId)}">${I('upload', 12)} Upload</button>` : `<button class="btn btn-xs btn-ghost btn-icon" style="width:26px" data-act="pd-upload" data-doc="${esc(d.docId)}" title="Replace file" aria-label="Replace ${esc(d.name)}">${I('upload', 13)}</button>`) : ''}</div>` }
@@ -1140,6 +1140,8 @@
     const notes = [];
     if (!it.total) notes.push(ui.alert('info', 'No invoice yet — the settlement is calculated once the vendor invoice is recorded.'));
     if (advOut > 0) notes.push(ui.alert('warn', `<b>${esc(fmt.inr(advOut))} advance still outstanding</b> with ${esc(vendorName(state, (p.po || {}).vendorId))}. It must be adjusted against an invoice or recovered before the purchase can close.`));
+    pays.filter(x => x.status === 'Failed').forEach(x => notes.push(ui.alert('danger', `<b>${esc(x.id)} failed</b> (${esc(fmt.inr(x.amount))})${x.failureReason ? ` — ${esc(x.failureReason)}` : ''}. The amount is still payable; it is re-processed from the payment step.`)));
+    pays.filter(x => x.status === 'Processing').forEach(x => notes.push(ui.alert('warn', `<b>${esc(x.id)} is processing at the bank</b> (${esc(fmt.inr(x.amount))}). It counts as paid only after the bank credit / UTR is confirmed.`)));
     if (it.total && it.balance <= 0 && advOut <= 0) notes.push(ui.alert('success', '<b>Fully settled.</b> Invoice value is covered by payments and advance adjustments.'));
     const pa = p.paymentApproval;
     const paBody = pa ? kv([
@@ -1297,6 +1299,7 @@
     .chip.pd-sig.tone-orange { background: var(--orange-bg); border-color: #F3C7AC; color: var(--orange); }
     .chip.pd-sig.tone-blue { background: var(--blue-50); border-color: #D4E1FA; color: var(--blue-600); }
     .pd-ballnote { max-width: 520px; }
+    .pd .ball.tone-grey .ball-orb { background: var(--black); box-shadow: 0 0 0 4px rgba(31,41,55,.12); }
     /* kit ballCard puts an inline 'grid-column: span 6' on Next action → implicit columns + overlap below 1200px */
     .pd .ball-grid > div.wide[style] { grid-column: 1 / -1 !important; }
     .pd .ball-foot .row { align-items: center; }
@@ -1339,6 +1342,7 @@
     .pd-out.tone-blue { background: var(--blue-50); border-color: #D4E1FA; } .pd-out.tone-blue .pd-out-v { color: var(--blue-600); font-size: 18px; }
     .pd-out.tone-grey .pd-out-v { color: var(--muted); font-size: 18px; }
     .pd-out-note { color: var(--ink-2); }
+    .pd-out .badge { background: rgba(255,255,255,.85); }
     .pd-verdict { font-weight: 700; font-size: 13.5px; }
     .pd-verdict.ok { color: var(--green); } .pd-verdict.bad { color: var(--red); }
     .tbl tr.pd-l1 td { background: #F3FBF7; }

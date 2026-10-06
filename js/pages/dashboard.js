@@ -59,9 +59,11 @@
     .db-bn-bar { display:flex; align-items:center; gap:8px; min-width:110px; }
     .db-bn-bar .progress { flex:1; min-width:50px; }
     .db-od { color:var(--red); font-weight:650; }
-    .db-m-only { display:none; color:var(--ink-2) !important; }
+    .tbl td .db-m-only { display:none; color:var(--ink-2); }
     .db-legend { display:flex; gap:12px; flex-wrap:wrap; font-size:11.5px; color:var(--muted); margin-top:10px; }
     .db-legend span { display:inline-flex; align-items:center; gap:5px; }
+    .db-root .dot-ind.tone-navy { background:var(--navy-600); }
+    .db-root .dot-ind.tone-grey { background:var(--faint); }
     @media (max-width: 1280px) {
       .kpis.db-k8 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     }
@@ -77,7 +79,7 @@
       #db-ball td:first-child .ellipsis { max-width:125px; }
       #db-ball .tbl td, #db-ball .tbl th { padding-left:8px; padding-right:8px; }
       .db-bn-bar { min-width:90px; }
-      .db-m-only { display:block !important; }
+      .tbl td .db-m-only { display:block; }
       .db-sla-big { font-size:32px; }
       .db-exp-item .amt { font-size:17px; }
     }
@@ -299,7 +301,7 @@
     const high = m.exc.filter(e => e.severity === 'High').length;
     return ui.card({
       id: 'db-exc',
-      title: `What needs management attention?${m.exc.length ? ` <span class="badge tone-${high ? 'red' : 'orange'}">${m.exc.length} open</span>` : ''}`, icon: 'alert',
+      title: `What needs ${ctx.can(['analytics', 'admin']) ? 'management ' : ''}attention?${m.exc.length ? ` <span class="badge tone-${high ? 'red' : 'orange'}">${m.exc.length} open</span>` : ''}`, icon: 'alert',
       sub: `Top ${Math.min(5, m.exc.length) || 5} open exceptions by severity and age${high ? ` · ${high} high severity` : ''}`, flush: true, body: table,
       actions: `<a class="btn btn-sm btn-ghost" href="#/exceptions">All exceptions ${I('arrowRight', 13)}</a>`
     });
@@ -370,7 +372,7 @@
     render(ctx) {
       const m = model(ctx);
       if (!m.list.length) {
-        return header(ctx, m) + ctx.ui.card({ body: ctx.ui.empty('dashboard', 'No purchases to show yet', 'Purchases you raise, approve or work on will appear here.', ctx.can('purchase.create') ? '<a class="btn btn-primary mt-8" href="#/purchases/new">Create PR</a>' : '') });
+        return '<div class="db-root">' + header(ctx, m) + ctx.ui.card({ body: ctx.ui.empty('dashboard', 'No purchases to show yet', 'Purchases you raise, approve or work on will appear here.') }) + '</div>';
       }
       return `<div class="db-root">
         ${header(ctx, m)}
