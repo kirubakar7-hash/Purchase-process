@@ -428,7 +428,18 @@ PCT.engine = (function () {
       return false;
     }
     if (!a.reassigned) a.ownerUserId = resolveOwner(state, p, a.ownerRole);
-    if (a.approvalLevel) { const l = p.approvals.find(x => x.level === a.approvalLevel); if (l) l.userId = a.ownerUserId; }
+    if (a.approvalLevel) {
+      const l = p.approvals.find(x => x.level === a.approvalLevel); if (l) l.userId = a.ownerUserId;
+      // Same person already approved a lower level (e.g. requestor is the dept head → L1 goes to the CEO who is also L2): approve once.
+      const prior = p.approvals.find(x => x.level < a.approvalLevel && x.status === 'Approved' && x.userId === a.ownerUserId);
+      if (prior && l) {
+        Object.assign(l, { status: 'Approved', at: now(), remarks: `Same approver as L${prior.level} — approved once` });
+        a.status = 'Skipped'; a.completedAt = now(); a.completedBy = a.ownerUserId; a.remarks = `Same approver as L${prior.level} (${userName(state, a.ownerUserId)}) — approved once`;
+        audit(state, { userId: 'system', action: 'Approved', entity: 'Approval', entityId: a.id, purchaseId: p.id, field: `L${l.level} ${l.label}`, prev: 'Pending', next: 'Approved', note: a.remarks });
+        if (p.approvals.every(v => v.status === 'Approved')) registerDoc(state, p, 'D03', `Approval_Record_${p.id}.pdf`, 'system');
+        return false;
+      }
+    }
     a.status = 'In Progress'; a.startAt = now(); a.dueAt = dueFor(state, p, a, a.startAt);
     a.waitingOn = null; a.blocker = null; a.nextAction = null;
     const st = p.stages.find(s => s.stageId === a.stageId);

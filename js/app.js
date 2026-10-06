@@ -58,7 +58,7 @@ PCT.app = (function () {
     { route: 'my-actions', label: 'My Actions', icon: 'inbox', count: (s, u) => PCT.sel.myActions(s, u).length },
     { section: 'Procurement' },
     { route: 'purchases', label: 'Purchases', icon: 'cart' },
-    { route: 'approvals', label: 'Approvals', icon: 'approve', perms: ['approve'], count: (s, u) => PCT.sel.myActions(s, u).filter(r => r.activityObj.approval).length },
+    { route: 'approvals', label: 'Approvals', icon: 'approve', perms: ['approve'], visible: (s, u) => PCT.sel.myActions(s, u).some(r => r.activityObj.approval), count: (s, u) => PCT.sel.myActions(s, u).filter(r => r.activityObj.approval).length },
     { route: 'vendors', label: 'Vendors', icon: 'vendor', perms: ['procure', 'vendor.manage', 'finance', 'analytics', 'admin'] },
     { route: 'rfq', label: 'RFQ & Quotations', icon: 'rfq', perms: ['procure', 'analytics', 'admin'] },
     { route: 'po', label: 'Purchase Orders', icon: 'po', perms: ['procure', 'finance', 'analytics', 'admin', 'receive'] },
@@ -180,7 +180,7 @@ PCT.app = (function () {
     let sectionOk = true;
     NAV.forEach(n => {
       if (n.section) { sectionOk = can(state, user, n.perms); if (sectionOk) html += `<div class="nav-section">${esc(n.section)}</div>`; return; }
-      if (!sectionOk || !can(state, user, n.perms)) return;
+      if (!sectionOk || !(can(state, user, n.perms) || (n.visible && n.visible(state, user)))) return;
       const active = path === n.route || path.indexOf(n.route + '/') === 0 || (n.route === 'purchases' && path === 'purchases/new');
       const c = n.count ? n.count(state, user) : 0;
       const al = n.alert ? n.alert(state, user) : 0;
@@ -292,7 +292,7 @@ PCT.app = (function () {
 
     const page = PCT.pages.match(path);
     const navItem = NAV.find(n => n.route && (path === n.route || path.indexOf(n.route + '/') === 0));
-    const allowed = page ? can(state, user, page.perms) : true;
+    const allowed = page ? (can(state, user, page.perms) || (typeof page.allow === 'function' && !!page.allow(state, user))) : true;
     const sameRoute = lastRoute === location.hash;
     const saved = opts.preserve && sameRoute ? snapshotForm() : null;
 

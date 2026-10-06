@@ -195,6 +195,7 @@ PCT.pages.register({
   route: 'vendors',                // #/vendors and #/vendors/V001 (ctx.params = ['V001'])
   title: 'Vendors',
   perms: ['procure', 'vendor.manage', 'finance', 'analytics', 'admin'],   // any-of; omit = all users
+  allow: (state, user) => bool,    // optional extra grant (e.g. Approvals for whoever owns an approval step)
   render(ctx) { return html },     // pure function of ctx.state + ctx.local + ctx.query
   after(ctx, root) {},             // optional DOM work
   actions: { 'vendor-save'(ctx, el, ev) {} }   // data-act="vendor-save"

@@ -274,7 +274,7 @@ PCT.ui = (function () {
       const acts = (o.actions || [{ label: 'Close', act: 'close' }]).map(a => `<button type="button" class="btn btn-${a.tone || 'secondary'}" data-modal-act="${esc(a.act)}">${a.icon ? I(a.icon, 15) : ''}${esc(a.label)}</button>`).join('');
       root.innerHTML = `<div class="modal-backdrop" data-modal-backdrop><div class="modal ${o.size || ''}" role="dialog" aria-modal="true"><form class="modal-form" onsubmit="return false"><div class="modal-head"><h3>${o.title || ''}</h3><button type="button" class="btn btn-ghost btn-icon" data-modal-act="close" aria-label="Close">${I('x', 18)}</button></div><div class="modal-body">${o.body || ''}</div><div class="modal-foot">${acts}</div></form></div></div>`;
       const first = root.querySelector('input:not([type=hidden]),select,textarea');
-      if (first) setTimeout(() => first.focus(), 30);
+      if (first && window.innerWidth > 560) setTimeout(() => { first.focus({ preventScroll: true }); const b = root.querySelector('.modal-body'); if (b) b.scrollTop = 0; }, 30);
     },
     close() { const r = document.getElementById('modal-root'); if (r) r.innerHTML = ''; modalHandlers = null; },
     handle(act, el) {
